@@ -1,0 +1,111 @@
+"""Casos de uso: valida primero y persiste dentro de una única transacción."""
+import hashlib
+import re
+import secrets
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+
+from limpiezasoft.negocio.modelos import ENTIDADES, etiqueta
+
+
+class ErrorValidacion(ValueError):
+    pass
+
+
+def validar(entidad, entrada, editando=False):
+    salida = {}
+    for campo in entidad.campos:
+        if campo.calculado:
+            continue
+        valor = entrada.get(campo.nombre)
+        if isinstance(valor, str):
+            valor = valor if campo.tipo == 'password' else valor.strip()
+        if campo.tipo == 'password' and editando and not valor:
+            continue
+        if valor is None or valor == '':
+            if campo.requerido:
+                raise ErrorValidacion(f'{etiqueta(campo.nombre)} es obligatorio.')
+            salida[campo.nombre] = None
+            continue
+        try:
+            if campo.tipo in ('decimal', 'entero'):
+                numero = Decimal(str(valor).replace(',', '.'))
+                if not numero.is_finite():
+                    raise ValueError()
+                if campo.tipo == 'entero':
+                    if numero != numero.to_integral_value() or not 0 <= numero <= 2147483647:
+                        raise ValueError()
+                    valor = int(numero)
+                else:
+                    if numero < 0 or numero > Decimal('9999999999.99') or numero != numero.quantize(Decimal('.01')):
+                        raise ValueError()
+                    valor = numero
+            elif campo.tipo == 'fecha':
+                valor = valor if isinstance(valor, datetime) else datetime.fromisoformat(valor)
+                if valor.tzinfo is None or valor.utcoffset() is None:
+                    raise ErrorValidacion('La fecha debe incluir zona horaria, por ejemplo -03:00.')
+            elif campo.tipo == 'booleano':
+                if not isinstance(valor, bool):
+                    raise ValueError()
+            elif campo.tipo == 'password':
+                if len(valor) < 8:
+                    raise ErrorValidacion('La contraseña debe tener al menos 8 caracteres.')
+                salt = secrets.token_hex(16)
+                digest = hashlib.pbkdf2_hmac('sha256', valor.encode(), bytes.fromhex(salt), 600000).hex()
+                valor = f'pbkdf2_sha256$600000${salt}${digest}'
+            if campo.largo and len(str(valor)) > campo.largo:
+                raise ErrorValidacion(f'{etiqueta(campo.nombre)} admite hasta {campo.largo} caracteres.')
+        except (InvalidOperation, ValueError, TypeError) as exc:
+            if isinstance(exc, ErrorValidacion):
+                raise
+            raise ErrorValidacion(f'{etiqueta(campo.nombre)}: introduce un valor válido, no negativo y con hasta 2 decimales.') from exc
+        if campo.nombre in ('cantidad', 'monto_pagado') and valor <= 0:
+            raise ErrorValidacion(f'{etiqueta(campo.nombre)} debe ser mayor que cero.')
+        if campo.nombre == 'descuento_porcentaje' and not 0 <= valor <= 100:
+            raise ErrorValidacion('El descuento debe estar entre 0 y 100.')
+        if campo.nombre == 'email' and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', valor):
+            raise ErrorValidacion('Introduce un correo electrónico válido.')
+        salida[campo.nombre] = valor
+    return salida
+
+
+class ServicioGestion:
+    def __init__(self, repositorio):
+        self.repo = repositorio
+
+    def listar(self, tabla, busqueda='', pagina=0):
+        with self.repo.sesion() as conn:
+            return self.repo.listar(conn, ENTIDADES[tabla], busqueda, 100, pagina * 100)
+
+    def opciones(self, tabla):
+        with self.repo.sesion() as conn:
+            return self.repo.opciones(conn, ENTIDADES[tabla])
+
+    def resumen(self):
+        with self.repo.sesion() as conn:
+            return self.repo.resumen(conn)
+
+    def guardar(self, tabla, entrada, anterior=None):
+        entidad = ENTIDADES[tabla]
+        valores = validar(entidad, entrada, anterior is not None)
+        with self.repo.sesion(escritura=True) as conn:
+            self.repo.guardar(conn, entidad, valores, anterior)
+            self._actualizar_totales(conn, tabla, valores, anterior)
+
+    def eliminar(self, tabla, anterior):
+        with self.repo.sesion(escritura=True) as conn:
+            self.repo.eliminar(conn, ENTIDADES[tabla], anterior)
+            self._actualizar_totales(conn, tabla, {}, anterior)
+
+    def _actualizar_totales(self, conn, tabla, valores, anterior):
+        campo = {'detalle_ventas': 'venta_id', 'detalle_compras': 'orden_id',
+                 'pagos_proveedores': 'orden_id'}.get(tabla)
+        if not campo:
+            return
+        padres = {registro[campo] for registro in (valores, anterior or {}) if campo in registro}
+        for padre in sorted(padres):
+            self.repo.recalcular(conn, tabla, padre)
+            if campo == 'orden_id':
+                saldo = self.repo.saldo_orden(conn, padre)
+                if saldo and saldo['pagado'] > saldo['total']:
+                    raise ErrorValidacion('La operación dejaría pagos superiores al total de la orden.')
