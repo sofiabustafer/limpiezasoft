@@ -2,7 +2,7 @@
 import hashlib
 import re
 import secrets
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 
 from limpiezasoft.negocio.modelos import ENTIDADES, etiqueta
@@ -10,6 +10,16 @@ from limpiezasoft.negocio.modelos import ENTIDADES, etiqueta
 
 class ErrorValidacion(ValueError):
     pass
+
+
+def limites_semana(referencia=None):
+    """Lunes inclusivo a lunes siguiente exclusivo, según la hora local del equipo."""
+    referencia = referencia or date.today()
+    lunes = referencia - timedelta(days=referencia.weekday())
+    # Convertir ambos límites por separado respeta cambios de huso entre fechas.
+    inicio = datetime.combine(lunes, time.min).astimezone()
+    fin = datetime.combine(lunes + timedelta(days=7), time.min).astimezone()
+    return inicio, fin
 
 
 def validar(entidad, entrada, editando=False):
@@ -47,6 +57,10 @@ def validar(entidad, entrada, editando=False):
             elif campo.tipo == 'booleano':
                 if not isinstance(valor, bool):
                     raise ValueError()
+            elif campo.tipo == 'color':
+                if not isinstance(valor, str) or not re.fullmatch(r'#[0-9a-fA-F]{6}', valor):
+                    raise ErrorValidacion('Selecciona un color válido en formato #RRGGBB.')
+                valor = valor.upper()
             elif campo.tipo == 'password':
                 if len(valor) < 8:
                     raise ErrorValidacion('La contraseña debe tener al menos 8 caracteres.')
@@ -84,6 +98,12 @@ class ServicioGestion:
     def resumen(self):
         with self.repo.sesion() as conn:
             return self.repo.resumen(conn)
+
+    def agenda_semanal(self, referencia=None):
+        inicio, fin = limites_semana(referencia)
+        with self.repo.sesion() as conn:
+            servicios = self.repo.agenda_semanal(conn, inicio, fin)
+        return dict(inicio=inicio, fin=fin, servicios=servicios)
 
     def guardar(self, tabla, entrada, anterior=None):
         entidad = ENTIDADES[tabla]

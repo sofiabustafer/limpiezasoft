@@ -10,6 +10,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import QApplication
 from limpiezasoft.negocio.modelos import ENTIDADES
+from limpiezasoft.negocio.servicios import limites_semana
 from limpiezasoft.ui.tema import TEMA
 from limpiezasoft.ui.ventana import Formulario, VentanaPrincipal
 
@@ -17,6 +18,10 @@ from limpiezasoft.ui.ventana import Formulario, VentanaPrincipal
 class ServicioVacio:
     def resumen(self):
         return dict(clientes=0, empleados=0, agenda=0, ventas=0)
+
+    def agenda_semanal(self):
+        inicio, fin = limites_semana()
+        return dict(inicio=inicio, fin=fin, servicios=[])
 
     def listar(self, *args):
         return [], 0

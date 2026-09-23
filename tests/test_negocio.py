@@ -1,12 +1,30 @@
 import unittest
 from contextlib import contextmanager
 from decimal import Decimal
+from datetime import date
 
 from limpiezasoft.negocio.modelos import ENTIDADES
-from limpiezasoft.negocio.servicios import ErrorValidacion, ServicioGestion, validar
+from limpiezasoft.negocio.servicios import ErrorValidacion, ServicioGestion, validar, limites_semana
 
 
 class ValidacionTests(unittest.TestCase):
+    def test_color_hexadecimal(self):
+        salida = validar(ENTIDADES['estados_servicio'], dict(nombre_estado='Pendiente', color='#ab12ef'))
+        self.assertEqual(salida['color'], '#AB12EF')
+        for color in ('rojo', '#123', '#12345678', '#GG1122', ''):
+            with self.subTest(color=color), self.assertRaises(ErrorValidacion):
+                validar(ENTIDADES['estados_servicio'], dict(nombre_estado='Pendiente', color=color))
+
+    def test_semana_lunes_domingo_y_cambio_de_ano(self):
+        for referencia, esperado in ((date(2026, 9, 21), date(2026, 9, 21)),
+                                    (date(2026, 9, 27), date(2026, 9, 21)),
+                                    (date(2027, 1, 1), date(2026, 12, 28))):
+            inicio, fin = limites_semana(referencia)
+            self.assertEqual(inicio.date(), esperado)
+            self.assertEqual((fin.date() - inicio.date()).days, 7)
+            self.assertEqual((inicio.hour, inicio.minute, fin.hour, fin.minute), (0, 0, 0, 0))
+            self.assertIsNotNone(inicio.utcoffset())
+
     def test_importe_exacto_y_coma_decimal(self):
         datos = validar(ENTIDADES['productos'], dict(categoria_prod_id=1, nombre='Jabón', precio_venta='12,35'))
         self.assertEqual(datos['precio_venta'], Decimal('12.35'))

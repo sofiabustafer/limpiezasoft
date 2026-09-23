@@ -53,7 +53,7 @@ entidad('productos', 'Productos', 'Inventario', 'producto_id', fk('categoria_pro
 entidad('depositos', 'Depósitos', 'Inventario', 'deposito_id', c('nombre_deposito', largo=100), c('ubicacion', requerido=False, largo=150))
 entidad('inventario_stock', 'Stock por depósito', 'Inventario', 'inventario_id', fk('producto_id', 'productos'), fk('deposito_id', 'depositos'), c('cantidad_stock', 'entero'))
 entidad('servicios_catalogo', 'Catálogo de servicios', 'Servicios', 'servicio_id', c('nombre_servicio', largo=100), c('precio_base', 'decimal'))
-entidad('estados_servicio', 'Estados de servicio', 'Servicios', 'estado_servicio_id', c('nombre_estado', largo=30))
+entidad('estados_servicio', 'Estados de servicio', 'Servicios', 'estado_servicio_id', c('nombre_estado', largo=30), c('color', 'color', largo=7))
 entidad('calendario_servicios', 'Agenda de servicios', 'Servicios', 'calendario_id', fk('cliente_id', 'clientes'), fk('servicio_id', 'servicios_catalogo'), fk('limpiadora_id', 'empleados'), fk('estado_servicio_id', 'estados_servicio'), c('fecha_programada', 'fecha'))
 entidad('facturas_servicios', 'Facturas de servicios', 'Servicios', 'factura_servicio_id', fk('calendario_id', 'calendario_servicios'), c('monto_total', 'decimal'), c('fecha_emision', 'fecha'))
 entidad('ventas', 'Ventas', 'Ventas', 'venta_id', fk('cliente_id', 'clientes', False), c('monto_total', 'decimal', calculado=True), c('fecha', 'fecha'))

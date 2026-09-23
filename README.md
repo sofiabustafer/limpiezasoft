@@ -15,7 +15,7 @@ Los documentos están en formato **HTML con gráficos SVG**, disponibles sin con
 - [Diagramas de casos de uso](design/casos-de-uso.html) y [fichas de los 12 casos](design/casos-de-uso.html#fichas).
 - [Diagramas de entidad–relación](design/entidad-relacion.html): [equipo](design/entidad-relacion.html#equipo), [clientes y servicios](design/entidad-relacion.html#servicios), [inventario](design/entidad-relacion.html#inventario), [ventas](design/entidad-relacion.html#ventas) y [compras](design/entidad-relacion.html#compras).
 - [Diccionario de las 25 tablas](design/entidad-relacion.html#diccionario).
-- [Diagramas de secuencia](design/secuencias.html): [consulta](design/secuencias.html#consulta), [guardado](design/secuencias.html#guardar), [ventas](design/secuencias.html#venta), [pagos](design/secuencias.html#pago), [compras](design/secuencias.html#compra) y [eliminación](design/secuencias.html#eliminar).
+- [Diagramas de secuencia](design/secuencias.html): [calendario](design/secuencias.html#calendario), [consulta](design/secuencias.html#consulta), [guardado](design/secuencias.html#guardar), [ventas](design/secuencias.html#venta), [pagos](design/secuencias.html#pago), [compras](design/secuencias.html#compra) y [eliminación](design/secuencias.html#eliminar).
 - [Decisiones de diseño](design/index.html#decisiones) y [trazabilidad](design/index.html#trazabilidad).
 
 Abre `design/index.html` en tu navegador. Cada diagrama incluye enlaces para abrir y descargar su SVG. GitHub muestra el código fuente de los HTML; para ver las páginas, abre la copia local. El generador [design/generar.py](design/generar.py) permite regenerar los documentos usando solamente Python y `db.sql`.
@@ -23,6 +23,8 @@ Abre `design/index.html` en tu navegador. Cada diagrama incluye enlaces para abr
 ## Funciones
 
 - Panel de resumen con clientes, empleados, servicios próximos y ventas acumuladas.
+- Calendario de la semana actual, de lunes a domingo y por hora local, con todas las citas de la semana y detalle al hacer clic.
+- Colores configurables por estado de servicio mediante un selector visual; el color se refleja en las citas del calendario.
 - Alta, consulta, edición y eliminación en las **25 tablas** del esquema original.
 - Navegación por Clientes, Equipo, Servicios, Inventario, Ventas y Compras.
 - Búsqueda en los campos visibles, paginación de 100 registros y selección de relaciones por nombre e identificador.
@@ -47,6 +49,8 @@ limpiezasoft/
     servicios.py                Validaciones y casos de uso
   ui/
     ventana.py                  Panel, listados, formularios y tareas asíncronas
+    calendario.py               Calendario semanal y ventana de detalle de citas
+    colores.py                  Selector visual y contraste de los colores
     tema.py                     Colores, tipografía y estilos Qt
 tests/
   test_negocio.py                Pruebas sin base de datos
@@ -120,6 +124,10 @@ ALTER TABLE calendario_servicios ALTER COLUMN limpiadora_id SET NOT NULL;
 
 No se asigna una persona automáticamente a registros históricos.
 
+#### Agregar colores a estados de servicio
+
+La base local `proyecto` ya fue actualizada. Para otra instalación anterior, ejecuta el contenido de [migrations/001_color_estados_servicio.sql](migrations/001_color_estados_servicio.sql) en pgAdmin, conectado a la base del proyecto. Agrega `estados_servicio.color` como texto hexadecimal `#RRGGBB` con un color verde inicial y conserva los estados existentes. Las bases nuevas ya incluyen el campo en `db.sql`.
+
 ### Iniciar
 
 Haz doble clic en [start.bat](start.bat) o ejecuta desde PowerShell:
@@ -148,6 +156,18 @@ La aplicación lee `.env` desde la raíz del proyecto. Si falla la conexión, mu
 6. Crea proveedores, estados de compra y métodos de pago. Registra una orden, sus detalles y finalmente sus pagos.
 
 Los identificadores se generan automáticamente. Las relaciones muestran nombres e identificadores; si una lista está vacía, registra primero los datos de su módulo. En tablas de asociación, ambos campos componen la clave primaria. Para conservar la contraseña de un usuario al editarlo, deja el campo vacío.
+
+### Calendario semanal y colores
+
+En **Vista general** se muestra la semana actual de lunes a domingo, con columnas por día y filas de 00:00 a 23:00. Desplázate para consultar otras horas. Cada tarjeta indica la hora de inicio, el servicio y el cliente; las citas anteriores llevan la marca «Pasado». Si varias citas coinciden en una hora, se muestran por separado.
+
+Haz clic en una cita para ver cliente, RUC/CI, teléfono, dirección, limpiadora asignada, estado, precio base y factura cuando exista. El calendario utiliza la hora local del equipo y no supone una duración, porque el esquema solo almacena la hora de inicio.
+
+Para elegir colores, abre **Servicios → Estados de servicio → Nuevo/Editar**, pulsa **Elegir color** y guarda. Al volver a **Vista general** se cargan los nuevos colores. El botón **Actualizar resumen y calendario** también permite recargar los datos. El nombre del estado se mantiene en el detalle para no depender solamente del color.
+
+![Calendario con citas de ejemplo](docs/calendario-ejemplo.png)
+
+Ejemplo ilustrativo con datos simulados; no agrega registros a la base de datos.
 
 ## Alcance escolar y decisiones de negocio
 

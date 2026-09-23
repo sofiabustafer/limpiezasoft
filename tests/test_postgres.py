@@ -47,6 +47,7 @@ class PostgreSQLTests(unittest.TestCase):
                             continue
                         datos[campo.nombre] = (1 if campo.referencia else
                             True if campo.tipo == 'booleano' else
+                            '#087F72' if campo.tipo == 'color' else
                             '2026-09-23T10:00:00-03:00' if campo.tipo == 'fecha' else
                             '5' if campo.tipo in ('decimal', 'entero') else
                             'persona@example.com' if campo.nombre == 'email' else
@@ -99,3 +100,26 @@ class PostgreSQLTests(unittest.TestCase):
                 self.assertEqual(servicio.listar(entidad.tabla)[0][-1]['fecha_programada'].timestamp(), instante)
                 formulario.close()
                 edicion.close()
+
+                # Límites inclusivo/exclusivo de semana y color actualizado por JOIN.
+                from datetime import date, timedelta
+                from limpiezasoft.negocio.servicios import limites_semana
+                referencia = date(2026, 9, 23)
+                inicio, fin = limites_semana(referencia)
+                iniciales = servicio.agenda_semanal(referencia)['servicios']
+                for fecha in (inicio - timedelta(seconds=1), inicio,
+                              fin - timedelta(seconds=1), fin):
+                    servicio.guardar('calendario_servicios', dict(cliente_id=1, servicio_id=1,
+                                     limpiadora_id=1, estado_servicio_id=1, fecha_programada=fecha))
+                semana = servicio.agenda_semanal(referencia)['servicios']
+                self.assertEqual(len(semana), len(iniciales) + 2)
+                self.assertEqual(semana[0]['fecha_programada'], inicio)
+                self.assertEqual(semana[-1]['fecha_programada'], fin - timedelta(seconds=1))
+                self.assertEqual(len({s['calendario_id'] for s in semana}), len(semana))
+                self.assertTrue(any(s['factura_servicio_id'] is not None for s in semana))
+                self.assertTrue(any(s['factura_servicio_id'] is None for s in semana))
+                estado = servicio.listar('estados_servicio')[0][0]
+                servicio.guardar('estados_servicio', dict(nombre_estado='Confirmado', color='#ffcc00'), estado)
+                self.assertTrue(all(s['estado_color'] == '#FFCC00' for s in servicio.agenda_semanal(referencia)['servicios']))
+                conn.execute((ROOT / 'migrations/001_color_estados_servicio.sql').read_text(encoding='utf-8'))
+                self.assertEqual(servicio.listar('estados_servicio')[0][0]['color'], '#FFCC00')

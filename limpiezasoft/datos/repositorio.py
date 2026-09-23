@@ -107,3 +107,23 @@ class Repositorio:
                             '(SELECT COUNT(*) FROM empleados) AS empleados, '
                             '(SELECT COUNT(*) FROM calendario_servicios WHERE fecha_programada >= CURRENT_TIMESTAMP) AS agenda, '
                             '(SELECT COALESCE(SUM(monto_total), 0) FROM ventas) AS ventas').fetchone()
+
+    def agenda_semanal(self, conn, inicio, fin):
+        return conn.execute('''
+            SELECT a.*, c.nombre_razon_social AS cliente_nombre,
+                   c.ruc_ci AS cliente_documento, c.telefono AS cliente_telefono,
+                   c.direccion AS cliente_direccion,
+                   s.nombre_servicio AS servicio_nombre, s.precio_base,
+                   e.nombre AS limpiadora_nombre, e.telefono AS limpiadora_telefono,
+                   estado.nombre_estado, estado.color AS estado_color,
+                   f.factura_servicio_id, f.monto_total AS factura_monto,
+                   f.fecha_emision AS factura_fecha
+            FROM calendario_servicios a
+            JOIN clientes c ON c.cliente_id = a.cliente_id
+            JOIN servicios_catalogo s ON s.servicio_id = a.servicio_id
+            LEFT JOIN empleados e ON e.empleado_id = a.limpiadora_id
+            JOIN estados_servicio estado ON estado.estado_servicio_id = a.estado_servicio_id
+            LEFT JOIN facturas_servicios f ON f.calendario_id = a.calendario_id
+            WHERE a.fecha_programada >= %s AND a.fecha_programada < %s
+            ORDER BY a.fecha_programada, a.calendario_id
+        ''', (inicio, fin)).fetchall()

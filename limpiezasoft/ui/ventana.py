@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
 )
 
 from limpiezasoft.negocio.modelos import ENTIDADES, etiqueta
+from limpiezasoft.ui.calendario import CalendarioSemanal, DetalleServicio
+from limpiezasoft.ui.colores import SelectorColor
 
 
 class Senales(QObject):
@@ -69,6 +71,8 @@ class Formulario(QDialog):
             elif campo.tipo == 'booleano':
                 editor = QCheckBox('Sí')
                 editor.setChecked(True if valor is None else bool(valor))
+            elif campo.tipo == 'color':
+                editor = SelectorColor(valor)
             elif campo.tipo == 'fecha':
                 editor = QDateTimeEdit()
                 editor.setCalendarPopup(True)
@@ -112,6 +116,8 @@ class Formulario(QDialog):
                 valor = editor.isChecked()
             elif isinstance(editor, QDateTimeEdit):
                 valor = datetime.fromtimestamp(editor.dateTime().toSecsSinceEpoch()).astimezone()
+            elif isinstance(editor, SelectorColor):
+                valor = editor.color
             else:
                 valor = editor.text()
             valores[nombre] = valor
@@ -193,20 +199,18 @@ class VentanaPrincipal(QMainWindow):
             tarjetas.addWidget(tarjeta)
             self.indicadores[clave] = valor
         panel.addLayout(tarjetas)
-        bienvenida = QLabel('Todo listo para trabajar\n\nGestiona tus clientes, programa servicios y mantén tus registros al día.\nSelecciona un módulo en el menú para comenzar.')
-        bienvenida.setWordWrap(True)
-        bienvenida.setStyleSheet('font-size: 18px; padding: 30px; background: #e3f1ed; border-radius: 12px;')
-        panel.addWidget(bienvenida)
         accesos = QHBoxLayout()
         for nombre, tabla in [('Ver clientes', 'clientes'), ('Programar servicios', 'calendario_servicios'), ('Consultar stock', 'inventario_stock')]:
             boton = QPushButton(nombre)
             boton.clicked.connect(lambda checked=False, t=tabla: self.abrir_tabla(t))
             accesos.addWidget(boton)
         panel.addLayout(accesos)
-        actualizar = QPushButton('Actualizar resumen / Reintentar conexión')
+        self.calendario = CalendarioSemanal()
+        self.calendario.servicioSeleccionado.connect(self.mostrar_detalle_servicio)
+        panel.addWidget(self.calendario, 1)
+        actualizar = QPushButton('Actualizar resumen y calendario / Reintentar conexión')
         actualizar.clicked.connect(self.cargar_resumen)
         panel.addWidget(actualizar)
-        panel.addStretch()
         self.paginas.addWidget(self.inicio)
         listado = QWidget()
         lista = QVBoxLayout(listado)
@@ -293,10 +297,18 @@ class VentanaPrincipal(QMainWindow):
             self.cargar_resumen()
 
     def cargar_resumen(self):
+        self.calendario.limpiar()
+        def obtener():
+            return self.servicio.resumen(), self.servicio.agenda_semanal()
         def mostrar(datos):
-            for clave, valor in datos.items():
+            resumen, agenda = datos
+            for clave, valor in resumen.items():
                 self.indicadores[clave].setText(f'{valor:,.2f}' if clave == 'ventas' else str(valor))
-        self.ejecutar(self.servicio.resumen, mostrar)
+            self.calendario.mostrar(agenda)
+        self.ejecutar(obtener, mostrar)
+
+    def mostrar_detalle_servicio(self, servicio):
+        DetalleServicio(servicio, self).exec()
 
     def abrir_tabla(self, tabla):
         self.tabla_actual = tabla

@@ -25,6 +25,11 @@ QTableWidget { background: white; alternate-background-color: #f8fafc; border: 1
 QHeaderView::section { background: #eaf0f6; border: none; padding: 12px 8px; color: #54677d; font-weight: 600; }
 QFrame#tarjeta { background: white; border: 1px solid #e1e8f0; border-radius: 12px; }
 QLabel#numero { font-size: 30px; font-weight: 700; color: #087f72; }
+QLabel#tituloCalendario { font-size: 19px; font-weight: 700; }
+QLabel#pieCalendario { font-size: 12px; color: #64748b; }
+QWidget#celdaCalendario { background: transparent; }
+QTableWidget#calendarioSemanal { border-radius: 8px; }
+QTableWidget#calendarioSemanal QHeaderView::section { padding: 7px 4px; font-size: 12px; }
 QStatusBar { color: #64748b; }
 QScrollArea { border: none; background: transparent; }
 QScrollArea#formularioScroll, QWidget#formularioContenido { background: #f3f6fa; }

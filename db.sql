@@ -95,7 +95,8 @@ CREATE TABLE servicios_catalogo (
 
 CREATE TABLE estados_servicio (
     estado_servicio_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    nombre_estado VARCHAR(30) UNIQUE NOT NULL
+    nombre_estado VARCHAR(30) UNIQUE NOT NULL,
+    color TEXT NOT NULL DEFAULT '#087F72' CHECK (color ~ '^#[0-9A-Fa-f]{6}$')
 );
 
 CREATE TABLE calendario_servicios (

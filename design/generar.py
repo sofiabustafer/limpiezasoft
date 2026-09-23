@@ -124,11 +124,11 @@ def architecture():
 
 
 CASES = [
-    ('CU01', 'Consultar resumen', 'general', 'PostgreSQL disponible y esquema inicializado.', 'Abrir Vista general o pulsar Actualizar resumen.', 'Mostrar cantidades de clientes, empleados, servicios futuros y suma de ventas.', 'Conexión fallida: mostrar error y permitir reintentar.'),
+    ('CU01', 'Consultar resumen y calendario', 'general', 'PostgreSQL disponible y esquema inicializado.', 'Abrir Vista general o actualizar; consultar la semana por día y hora y pulsar una cita.', 'Mostrar indicadores y calendario de lunes a domingo, con color por estado y detalle de cada cita.', 'Semana sin citas: mostrar estado vacío. Conexión fallida: mostrar error y permitir reintentar.'),
     ('CU02', 'Gestionar clientes', 'general', 'Crear primero una categoría de cliente.', 'Consultar, buscar, crear, editar o eliminar clientes y categorías.', 'Persistir datos válidos; respetar unicidad de RUC/CI.', 'Categoría inexistente, duplicados o referencias que impiden eliminar.'),
     ('CU03', 'Gestionar equipo', 'general', 'Crear un departamento para registrar empleados.', 'Administrar departamentos, empleados, roles y asociaciones.', 'Registrar el equipo y las claves compuestas de las asociaciones.', 'Cédula duplicada, campo obligatorio vacío o referencia inválida.'),
     ('CU04', 'Administrar usuarios y roles', 'general', 'Debe existir el empleado y, para asociar un rol, el usuario y el rol.', 'Registrar usuario, correo, contraseña y estado; administrar usuario_roles.', 'Guardar contraseña con PBKDF2; conservarla si queda vacía al editar.', 'Correo inválido, empleado ya asociado o contraseña de menos de 8 caracteres.'),
-    ('CU05', 'Mantener catálogo de servicios', 'servicios', 'Esquema inicializado.', 'Administrar nombres, precios base y estados de servicio.', 'Persistir el catálogo con nombres únicos e importes no negativos.', 'Nombre duplicado o importe inválido.'),
+    ('CU05', 'Mantener catálogo de servicios', 'servicios', 'Esquema inicializado.', 'Administrar nombres, precios base y estados de servicio; elegir el color de cada estado con el selector.', 'Persistir el catálogo y el color hexadecimal del estado para mostrarlo en las citas del calendario.', 'Nombre duplicado, importe inválido o color que no cumple #RRGGBB.'),
     ('CU06', 'Programar un servicio', 'servicios', 'Deben existir cliente, servicio, empleada asignada y estado.', 'Seleccionar cliente, servicio, limpiadora, estado y fecha/hora; guardar la agenda.', 'Crear calendario_servicios con la empleada asignada, fecha y zona horaria.', 'Referencia inexistente, limpiadora sin seleccionar o fecha inválida. No se detectan solapamientos.'),
     ('CU07', 'Registrar factura de servicio', 'servicios', 'Debe existir una cita sin factura asociada.', 'Seleccionar la cita e ingresar monto y fecha de emisión.', 'Crear una factura interna por cita como máximo.', 'Cita ya facturada o monto negativo. No hay emisión fiscal.'),
     ('CU08', 'Gestionar productos y depósitos', 'servicios', 'Crear la categoría antes del producto.', 'Administrar categorías, productos, precios y depósitos.', 'Mantener catálogos para existencias, ventas y compras.', 'Código de barra duplicado o categoría inválida.'),
@@ -264,6 +264,18 @@ def msg(source, target, label, reply=False):
 
 
 SEQUENCES = [
+    ('calendario', 'SQ07 · Consultar calendario y detalle', 'CU01 / CU05', [
+        msg(0, 1, 'Abrir Vista general o actualizar'),
+        'El trabajador obtiene los indicadores de resumen y luego el calendario semanal.',
+        msg(1, 2, 'agenda_semanal()'), msg(2, 2, 'Calcular lunes local y lunes siguiente'),
+        msg(2, 3, 'sesion() / agenda_semanal(inicio, fin)'),
+        msg(3, 4, 'SELECT por rango con JOIN de detalles'),
+        msg(4, 3, 'Citas, nombres, color del estado y factura', True),
+        msg(3, 2, 'Resultados; cerrar conexión', True), msg(2, 1, 'Semana y servicios', True),
+        msg(1, 1, 'Agrupar por día y hora; pintar colores'),
+        msg(0, 1, 'Hacer clic en una cita'), msg(1, 1, 'Abrir DetalleServicio con datos cargados'),
+        msg(1, 0, 'Mostrar detalle de cita y contactos', True),
+    ], 'Rango: lunes 00:00 inclusivo a lunes siguiente 00:00 exclusivo, según hora local. Se incluyen todas las citas de la semana y se identifican las pasadas. Los colores se leen del estado actual al recargar; la ventana de detalle utiliza los datos ya consultados.'),
     ('consulta', 'SQ01 · Buscar y paginar registros', 'CU02–CU12', [
         msg(0, 1, 'Buscar texto / cambiar página'),
         'La UI deshabilita acciones y envía Trabajo a QThreadPool; la ventana sigue procesando eventos.',
@@ -378,7 +390,7 @@ def sequences():
         sequence_diagram(slug, title, events)
         body += f'<section id="{slug}"><h2>{title}</h2><p class="muted">Trazabilidad: {cases} · <code>ServicioGestion</code> y <code>Repositorio</code>.</p>' + figure(f'secuencia-{slug}.svg', title, 'Vista lógica por capas. Los números ordenan los mensajes del dibujo; solo se ejecuta una rama de cada alt.') + f'<div class="note">{note}</div></section>'
     body += '<section id="fuentes"><h2>Fuentes de implementación</h2><ul class="sources"><li><a href="../limpiezasoft/ui/ventana.py">ventana.py</a>: ejecutar, cargar_tabla, formulario y eliminar.</li><li><a href="../limpiezasoft/negocio/servicios.py">servicios.py</a>: validar, guardar, eliminar y _actualizar_totales.</li><li><a href="../limpiezasoft/datos/repositorio.py">repositorio.py</a>: sesion, listar, guardar, eliminar, recalcular y saldo_orden.</li></ul></section>'
-    page('secuencias.html', 'Diagramas de secuencia', 'Seis recorridos que conectan las acciones del operador con validaciones, consultas y transacciones PostgreSQL.', body)
+    page('secuencias.html', 'Diagramas de secuencia', f'{len(SEQUENCES)} recorridos que conectan las acciones del operador con validaciones, consultas y transacciones PostgreSQL.', body)
 
 
 def index():
@@ -389,8 +401,8 @@ def index():
         ['Acceso a datos', '<code>datos/repositorio.py</code>', 'Consultas parametrizadas, proyecciones SQL de totales, conexiones, transacciones y traducción de errores.'],
         ['Composición', '<code>main.py</code>, <code>config.py</code> y <code>start.bat</code>', 'Inyectar dependencias, cargar configuración y arrancar la aplicación desde su carpeta.'],
     ]
-    body = '<div class="grid"><a class="card" href="casos-de-uso.html"><small>01 / FUNCIONAL</small><b>Casos de uso</b><p>Actor, límites del sistema y 12 fichas de operaciones.</p></a><a class="card" href="entidad-relacion.html"><small>02 / DATOS</small><b>Entidad–relación</b><p>25 tablas, cinco diagramas y diccionario completo de campos.</p></a><a class="card" href="secuencias.html"><small>03 / COMPORTAMIENTO</small><b>Secuencias</b><p>Seis flujos: consultas, guardado, ventas, pagos, compras y eliminación.</p></a></div>'
-    body += f'<section id="alcance"><h2>Diseño de la versión implementada</h2><div class="stats"><div><strong>3</strong><span>capas de aplicación</span></div><div><strong>25</strong><span>tablas PostgreSQL</span></div><div><strong>{len(RELATIONS)}</strong><span>claves foráneas</span></div><div><strong>15</strong><span>diagramas SVG</span></div></div><p>LimpiezaSoft es un proyecto escolar de gestión de una empresa de limpieza. Esta documentación describe los archivos existentes y las reglas efectivamente implementadas. El esquema de referencia es <a href="../db.sql">db.sql</a>.</p><div class="note">Usuarios y roles no constituyen un sistema de autenticación. Compras y ventas no actualizan stock automáticamente porque sus detalles no identifican depósito. Los descuentos de categoría se almacenan, pero no se aplican automáticamente. Las facturas son registros internos.</div></section>'
+    body = '<div class="grid"><a class="card" href="casos-de-uso.html"><small>01 / FUNCIONAL</small><b>Casos de uso</b><p>Actor, límites del sistema y 12 fichas de operaciones.</p></a><a class="card" href="entidad-relacion.html"><small>02 / DATOS</small><b>Entidad–relación</b><p>25 tablas, cinco diagramas y diccionario completo de campos.</p></a><a class="card" href="secuencias.html"><small>03 / COMPORTAMIENTO</small><b>Secuencias</b><p>Calendario, consultas, guardado, ventas, pagos, compras y eliminación.</p></a></div>'
+    body += f'<section id="alcance"><h2>Diseño de la versión implementada</h2><div class="stats"><div><strong>3</strong><span>capas de aplicación</span></div><div><strong>25</strong><span>tablas PostgreSQL</span></div><div><strong>{len(RELATIONS)}</strong><span>claves foráneas</span></div><div><strong>{9 + len(SEQUENCES)}</strong><span>diagramas SVG</span></div></div><p>LimpiezaSoft es un proyecto escolar de gestión de una empresa de limpieza. Esta documentación describe los archivos existentes y las reglas efectivamente implementadas. El esquema de referencia es <a href="../db.sql">db.sql</a>.</p><div class="note">Usuarios y roles no constituyen un sistema de autenticación. Compras y ventas no actualizan stock automáticamente porque sus detalles no identifican depósito. Los descuentos de categoría se almacenan, pero no se aplican automáticamente. Las facturas son registros internos.</div></section>'
     body += '<section id="arquitectura"><h2>Arquitectura en tres capas</h2>' + figure('arquitectura.svg', 'Arquitectura de tres capas con PostgreSQL', 'Las flechas continuas indican llamadas; las discontinuas, resultados o errores. Main conecta las dependencias.') + table(['Responsabilidad', 'Archivos', 'Descripción'], rows) + '<p>El servicio recibe un repositorio por inyección. El repositorio recibe metadatos de entidad y no importa widgets Qt. La UI invoca casos de uso y no construye SQL. La configuración se mantiene fuera de los formularios y las credenciales no forman parte de estos documentos.</p></section>'
     body += '<section id="decisiones"><h2>Decisiones de diseño</h2><ul><li><strong>Formularios por metadatos:</strong> los 25 módulos comparten la misma UI y reglas por tipo de campo.</li><li><strong>Exactitud monetaria:</strong> Decimal en negocio y NUMERIC en PostgreSQL; hasta dos decimales.</li><li><strong>Atomicidad:</strong> detalle, recálculo y validación de saldo se confirman o revierten juntos.</li><li><strong>Concurrencia:</strong> bloqueo transaccional compartido por las escrituras de esta aplicación. Ediciones externas por SQL no ejecutan sus reglas Python.</li><li><strong>Relaciones:</strong> los selectores muestran nombres e identificadores; PostgreSQL conserva la integridad referencial.</li><li><strong>Secretos:</strong> .env local fuera de Git; contraseñas de usuarios con hash y sin exposición en listados.</li><li><strong>Escala escolar:</strong> listados de 100 registros y catálogos completos en selectores.</li></ul></section>'
     body += '<section id="trazabilidad"><h2>Trazabilidad y verificación</h2>' + table(['Documento', 'Fuente', 'Qué verificar'], [
@@ -409,4 +421,4 @@ if __name__ == '__main__':
     entity_relationship()
     sequences()
     index()
-    print(f'Generados 4 HTML y 15 SVG: {len(TABLES)} tablas y {len(RELATIONS)} relaciones.')
+    print(f'Generados 4 HTML y {9 + len(SEQUENCES)} SVG: {len(TABLES)} tablas y {len(RELATIONS)} relaciones.')
