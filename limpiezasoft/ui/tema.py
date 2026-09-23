@@ -19,6 +19,8 @@ QPushButton#primario:hover { background: #05675d; }
 QPushButton#peligro { color: #b83e49; }
 QLineEdit, QComboBox, QDateTimeEdit { background: white; border: 1px solid #d7e1eb; border-radius: 7px; padding: 9px; color: #172c45; min-height: 19px; }
 QLineEdit:focus, QComboBox:focus { border: 1px solid #087f72; }
+QComboBox QAbstractItemView { background: #f3f6fa; color: #172c45; border: 1px solid #d7e1eb; selection-background-color: #d4eee8; selection-color: #123c37; outline: none; }
+QComboBox QAbstractItemView::item { min-height: 28px; padding: 4px 8px; }
 QTableWidget { background: white; alternate-background-color: #f8fafc; border: 1px solid #e1e8f0; border-radius: 10px; gridline-color: #eef2f6; selection-background-color: #d4eee8; selection-color: #123c37; color: #23374e; }
 QHeaderView::section { background: #eaf0f6; border: none; padding: 12px 8px; color: #54677d; font-weight: 600; }
 QFrame#tarjeta { background: white; border: 1px solid #e1e8f0; border-radius: 12px; }
