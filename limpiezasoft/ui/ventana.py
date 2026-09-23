@@ -46,8 +46,10 @@ class Formulario(QDialog):
         ayuda.setWordWrap(True)
         layout.addWidget(ayuda)
         scroll = QScrollArea()
+        scroll.setObjectName('formularioScroll')
         scroll.setWidgetResizable(True)
         cuerpo = QWidget()
+        cuerpo.setObjectName('formularioContenido')
         form = QFormLayout(cuerpo)
         form.setSpacing(14)
         for campo in entidad.campos:

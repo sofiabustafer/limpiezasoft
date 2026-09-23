@@ -6,6 +6,20 @@ Aplicación de escritorio en Python para un proyecto escolar del equipo de Infor
 
 Vista del panel con una base de ejemplo vacía.
 
+## Documentación de diseño
+
+Los documentos están en formato **HTML con gráficos SVG**, disponibles sin conexión a Internet:
+
+- [Índice de diseño](design/index.html).
+- [Arquitectura de tres capas](design/index.html#arquitectura).
+- [Diagramas de casos de uso](design/casos-de-uso.html) y [fichas de los 12 casos](design/casos-de-uso.html#fichas).
+- [Diagramas de entidad–relación](design/entidad-relacion.html): [equipo](design/entidad-relacion.html#equipo), [clientes y servicios](design/entidad-relacion.html#servicios), [inventario](design/entidad-relacion.html#inventario), [ventas](design/entidad-relacion.html#ventas) y [compras](design/entidad-relacion.html#compras).
+- [Diccionario de las 25 tablas](design/entidad-relacion.html#diccionario).
+- [Diagramas de secuencia](design/secuencias.html): [consulta](design/secuencias.html#consulta), [guardado](design/secuencias.html#guardar), [ventas](design/secuencias.html#venta), [pagos](design/secuencias.html#pago), [compras](design/secuencias.html#compra) y [eliminación](design/secuencias.html#eliminar).
+- [Decisiones de diseño](design/index.html#decisiones) y [trazabilidad](design/index.html#trazabilidad).
+
+Abre `design/index.html` en tu navegador. Cada diagrama incluye enlaces para abrir y descargar su SVG. GitHub muestra el código fuente de los HTML; para ver las páginas, abre la copia local. El generador [design/generar.py](design/generar.py) permite regenerar los documentos usando solamente Python y `db.sql`.
+
 ## Funciones
 
 - Panel de resumen con clientes, empleados, servicios próximos y ventas acumuladas.
@@ -22,6 +36,8 @@ Vista del panel con una base de ejemplo vacía.
 
 ```text
 main.py                         Ensambla las capas y arranca la aplicación
+start.bat                       Inicio con doble clic en Windows
+design/                         Documentos HTML, diagramas SVG y generador
 limpiezasoft/
   config.py                     Configuración desde variables de entorno
   datos/
@@ -89,6 +105,16 @@ Con `.env` configurado, inicializa las tablas **una sola vez, en una base vacía
 Si ya importaste las tablas del archivo original, omite este paso. La inicialización no borra ni reemplaza tablas existentes; si encuentra un conflicto, revierte toda la operación. `db.sql` conserva el esquema de `db.sql.txt`, incluidas claves compuestas, identidades y columnas generadas.
 
 ### Iniciar
+
+Haz doble clic en [start.bat](start.bat) o ejecuta desde PowerShell:
+
+```powershell
+.\start.bat
+```
+
+El script funciona aunque se invoque desde otra carpeta: ubica el proyecto, verifica `.venv` y las dependencias e inicia la aplicación. Si falta el entorno o alguna biblioteca, muestra cómo instalarlo. No cambia las credenciales ni inicializa la base automáticamente.
+
+También puedes iniciar Python directamente:
 
 ```powershell
 .\.venv\Scripts\python.exe main.py

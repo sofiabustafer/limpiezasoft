@@ -25,5 +25,6 @@ QFrame#tarjeta { background: white; border: 1px solid #e1e8f0; border-radius: 12
 QLabel#numero { font-size: 30px; font-weight: 700; color: #087f72; }
 QStatusBar { color: #64748b; }
 QScrollArea { border: none; background: transparent; }
+QScrollArea#formularioScroll, QWidget#formularioContenido { background: #f3f6fa; }
 QToolTip { background: #172c45; color: white; padding: 6px; }
 '''
