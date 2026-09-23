@@ -102,6 +102,7 @@ CREATE TABLE calendario_servicios (
     calendario_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     cliente_id INT NOT NULL REFERENCES clientes(cliente_id),
     servicio_id INT NOT NULL REFERENCES servicios_catalogo(servicio_id),
+    limpiadora_id INT NOT NULL REFERENCES empleados(empleado_id),
     estado_servicio_id INT NOT NULL REFERENCES estados_servicio(estado_servicio_id),
     fecha_programada TIMESTAMP WITH TIME ZONE NOT NULL
 );

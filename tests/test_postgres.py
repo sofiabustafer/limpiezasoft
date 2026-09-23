@@ -7,6 +7,13 @@ from contextlib import contextmanager
 
 @unittest.skipUnless(os.getenv('RUN_DB_TESTS') == '1', 'Requiere RUN_DB_TESTS=1 y PostgreSQL')
 class PostgreSQLTests(unittest.TestCase):
+    def test_error_campo_obligatorio_informa_columna(self):
+        from limpiezasoft.datos.repositorio import Repositorio, ErrorDatos
+        with self.assertRaisesRegex(ErrorDatos, 'limpiadora_id'):
+            with Repositorio().sesion() as conn:
+                conn.execute('CREATE TEMP TABLE prueba_campo_obligatorio (limpiadora_id INT NOT NULL)')
+                conn.execute('INSERT INTO prueba_campo_obligatorio DEFAULT VALUES')
+
     def test_crud_totales_pago_y_esquema(self):
         import psycopg
         from psycopg import sql
@@ -68,3 +75,27 @@ class PostgreSQLTests(unittest.TestCase):
                 servicio.eliminar('detalle_ventas', detalle)
                 self.assertEqual(servicio.listar('ventas')[0][0]['monto_total'], 0)
                 self.assertEqual(servicio.listar('clientes', "' OR 1=1 --")[1], 0)
+
+                # Reproduce el guardado desde el formulario Qt, incluida la fecha local.
+                os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+                from PySide6.QtCore import QDateTime
+                from PySide6.QtWidgets import QApplication
+                from limpiezasoft.ui.ventana import Formulario
+                app = QApplication.instance() or QApplication([])
+                entidad = ENTIDADES['calendario_servicios']
+                opciones = {c.referencia: servicio.opciones(c.referencia)
+                            for c in entidad.campos if c.referencia}
+                formulario = Formulario(entidad, opciones)
+                for nombre in ('cliente_id', 'servicio_id', 'limpiadora_id', 'estado_servicio_id'):
+                    formulario.editores[nombre].setCurrentIndex(1)
+                instante = 1790184600
+                formulario.editores['fecha_programada'].setDateTime(QDateTime.fromSecsSinceEpoch(instante))
+                servicio.guardar(entidad.tabla, formulario.valores())
+                agenda = servicio.listar(entidad.tabla)[0][-1]
+                self.assertEqual(agenda['limpiadora_id'], 1)
+                self.assertEqual(agenda['fecha_programada'].timestamp(), instante)
+                edicion = Formulario(entidad, opciones, agenda)
+                servicio.guardar(entidad.tabla, edicion.valores(), agenda)
+                self.assertEqual(servicio.listar(entidad.tabla)[0][-1]['fecha_programada'].timestamp(), instante)
+                formulario.close()
+                edicion.close()

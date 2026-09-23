@@ -36,6 +36,16 @@ class ValidacionTests(unittest.TestCase):
         with self.assertRaises(ErrorValidacion):
             validar(ENTIDADES['ventas'], dict(fecha='2026-09-23T10:00:00'))
 
+    def test_agenda_exige_limpiadora_y_conserva_fecha(self):
+        entrada = dict(cliente_id=1, servicio_id=2, estado_servicio_id=1,
+                       fecha_programada='2026-09-23T14:30:00-03:00')
+        with self.assertRaisesRegex(ErrorValidacion, 'Limpiadora es obligatorio'):
+            validar(ENTIDADES['calendario_servicios'], entrada)
+        entrada['limpiadora_id'] = 3
+        salida = validar(ENTIDADES['calendario_servicios'], entrada)
+        self.assertEqual(salida['limpiadora_id'], 3)
+        self.assertEqual(salida['fecha_programada'].isoformat(), entrada['fecha_programada'])
+
     def test_password_se_hashea_y_se_conserva_al_editar(self):
         entrada = dict(empleado_id=1, email='persona@example.com', password_hash='ClaveDePrueba123', activo=True)
         salida = validar(ENTIDADES['usuarios'], entrada)

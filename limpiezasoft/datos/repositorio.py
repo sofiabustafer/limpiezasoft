@@ -25,6 +25,11 @@ class Repositorio:
             raise ErrorDatos('Ya existe un registro con esos datos únicos.') from exc
         except psycopg.errors.ForeignKeyViolation as exc:
             raise ErrorDatos('Hay registros relacionados o la referencia ya no existe.') from exc
+        except psycopg.errors.NotNullViolation as exc:
+            campo = exc.diag.column_name
+            detalle = f' «{campo}»' if campo else ''
+            raise ErrorDatos(f'Falta completar un campo obligatorio{detalle}. '
+                             'Si no aparece en el formulario, revisa que la aplicación y el esquema estén actualizados.') from exc
         except psycopg.errors.CheckViolation as exc:
             raise ErrorDatos('Los valores no cumplen las restricciones de la base de datos.') from exc
         except psycopg.errors.UndefinedTable as exc:

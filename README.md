@@ -51,7 +51,6 @@ limpiezasoft/
 tests/
   test_negocio.py                Pruebas sin base de datos
 db.sql                          Esquema para inicializar PostgreSQL
-db.sql.txt                      Archivo original recibido
 .env.example                    Configuración de ejemplo sin secretos
 requirements.txt                Dependencias de ejecución
 ```
@@ -102,7 +101,24 @@ Con `.env` configurado, inicializa las tablas **una sola vez, en una base vacía
 .\.venv\Scripts\python.exe main.py --init-db
 ```
 
-Si ya importaste las tablas del archivo original, omite este paso. La inicialización no borra ni reemplaza tablas existentes; si encuentra un conflicto, revierte toda la operación. `db.sql` conserva el esquema de `db.sql.txt`, incluidas claves compuestas, identidades y columnas generadas.
+Si ya importaste las tablas, omite este paso. La inicialización no borra ni reemplaza tablas existentes; si encuentra un conflicto, revierte toda la operación. `db.sql` contiene el esquema actualizado, incluidas claves compuestas, identidades, columnas generadas y la asignación obligatoria de una empleada en la agenda.
+
+#### Actualizar una base anterior sin asignación de limpiadora
+
+La base local `proyecto` ya incluye `calendario_servicios.limpiadora_id`. No necesita cambios para esta corrección. En otra instalación que todavía no tenga esa columna, ejecuta:
+
+```sql
+ALTER TABLE calendario_servicios
+    ADD COLUMN IF NOT EXISTS limpiadora_id INT REFERENCES empleados(empleado_id);
+```
+
+Asigna la limpiadora correcta a cada agenda existente desde la aplicación. Cuando todas tengan una asignación, establece la obligatoriedad:
+
+```sql
+ALTER TABLE calendario_servicios ALTER COLUMN limpiadora_id SET NOT NULL;
+```
+
+No se asigna una persona automáticamente a registros históricos.
 
 ### Iniciar
 
@@ -127,7 +143,7 @@ La aplicación lee `.env` desde la raíz del proyecto. Si falla la conexión, mu
 1. Crea departamentos, roles y empleados; después, usuarios y sus asociaciones.
 2. Crea categorías de clientes y luego clientes.
 3. Crea categorías de productos, productos y depósitos; registra existencias en **Stock por depósito**.
-4. Crea estados y catálogo de servicios; programa una fecha en **Agenda de servicios** y registra su factura.
+4. Crea estados y catálogo de servicios; en **Agenda de servicios** selecciona cliente, servicio, **limpiadora** (registrada en Empleados), estado y fecha. Luego registra su factura.
 5. Registra una venta y luego sus detalles. El total empieza en cero y se calcula a partir de los detalles.
 6. Crea proveedores, estados de compra y métodos de pago. Registra una orden, sus detalles y finalmente sus pagos.
 

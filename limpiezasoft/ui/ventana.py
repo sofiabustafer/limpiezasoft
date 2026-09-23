@@ -59,6 +59,10 @@ class Formulario(QDialog):
             if campo.referencia:
                 editor = QComboBox()
                 editor.addItem('Seleccionar…' if campo.requerido else 'Sin asignar', None)
+                if campo.requerido and not opciones[campo.referencia]:
+                    referencia = ENTIDADES[campo.referencia]
+                    editor.setItemText(0, f'Sin registros: crea en {referencia.titulo}')
+                    editor.setToolTip(f'Registra primero los datos en {referencia.grupo} → {referencia.titulo}.')
                 for opcion in opciones[campo.referencia]:
                     editor.addItem(f"{opcion['nombre']} · #{opcion['id']}", opcion['id'])
                 editor.setCurrentIndex(max(0, editor.findData(valor)))

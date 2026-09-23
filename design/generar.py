@@ -129,7 +129,7 @@ CASES = [
     ('CU03', 'Gestionar equipo', 'general', 'Crear un departamento para registrar empleados.', 'Administrar departamentos, empleados, roles y asociaciones.', 'Registrar el equipo y las claves compuestas de las asociaciones.', 'Cédula duplicada, campo obligatorio vacío o referencia inválida.'),
     ('CU04', 'Administrar usuarios y roles', 'general', 'Debe existir el empleado y, para asociar un rol, el usuario y el rol.', 'Registrar usuario, correo, contraseña y estado; administrar usuario_roles.', 'Guardar contraseña con PBKDF2; conservarla si queda vacía al editar.', 'Correo inválido, empleado ya asociado o contraseña de menos de 8 caracteres.'),
     ('CU05', 'Mantener catálogo de servicios', 'servicios', 'Esquema inicializado.', 'Administrar nombres, precios base y estados de servicio.', 'Persistir el catálogo con nombres únicos e importes no negativos.', 'Nombre duplicado o importe inválido.'),
-    ('CU06', 'Programar un servicio', 'servicios', 'Deben existir cliente, servicio y estado.', 'Seleccionar referencias y fecha/hora; guardar la agenda.', 'Crear calendario_servicios con fecha y zona horaria.', 'Referencia inexistente o fecha inválida. No se detectan solapamientos.'),
+    ('CU06', 'Programar un servicio', 'servicios', 'Deben existir cliente, servicio, empleada asignada y estado.', 'Seleccionar cliente, servicio, limpiadora, estado y fecha/hora; guardar la agenda.', 'Crear calendario_servicios con la empleada asignada, fecha y zona horaria.', 'Referencia inexistente, limpiadora sin seleccionar o fecha inválida. No se detectan solapamientos.'),
     ('CU07', 'Registrar factura de servicio', 'servicios', 'Debe existir una cita sin factura asociada.', 'Seleccionar la cita e ingresar monto y fecha de emisión.', 'Crear una factura interna por cita como máximo.', 'Cita ya facturada o monto negativo. No hay emisión fiscal.'),
     ('CU08', 'Gestionar productos y depósitos', 'servicios', 'Crear la categoría antes del producto.', 'Administrar categorías, productos, precios y depósitos.', 'Mantener catálogos para existencias, ventas y compras.', 'Código de barra duplicado o categoría inválida.'),
     ('CU09', 'Registrar stock y conciliaciones', 'operaciones', 'Deben existir producto y depósito.', 'Registrar stock; en conciliaciones ingresar stock del sistema y físico.', 'Guardar stock no negativo y diferencia generada por PostgreSQL.', 'Par producto/depósito duplicado en stock. Conciliar no ajusta las existencias.'),
@@ -166,7 +166,7 @@ def use_cases():
 
 DOMAINS = [
     ('equipo', 'Equipo y usuarios', ['departamentos', 'roles', 'empleados', 'departamentos_roles', 'usuarios', 'usuario_roles']),
-    ('servicios', 'Clientes y servicios', ['categorias_clientes', 'clientes', 'servicios_catalogo', 'estados_servicio', 'calendario_servicios', 'facturas_servicios']),
+    ('servicios', 'Clientes y servicios', ['categorias_clientes', 'clientes', 'servicios_catalogo', 'empleados', 'estados_servicio', 'calendario_servicios', 'facturas_servicios']),
     ('inventario', 'Productos e inventario', ['categorias_productos', 'productos', 'depositos', 'inventario_stock', 'conciliaciones_inventario']),
     ('ventas', 'Ventas', ['clientes', 'productos', 'ventas', 'detalle_ventas']),
     ('compras', 'Compras y pagos', ['proveedores', 'estados_orden', 'metodos_pago', 'productos', 'ordenes_compra', 'detalle_compras', 'pagos_proveedores']),
