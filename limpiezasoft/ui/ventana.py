@@ -54,7 +54,17 @@ class Formulario(QDialog):
         cuerpo.setObjectName('formularioContenido')
         form = QFormLayout(cuerpo)
         form.setSpacing(14)
-        for campo in entidad.campos:
+        campos = entidad.campos
+        if entidad.tabla == 'empleados':
+            campos = sorted(campos, key=lambda campo: {'rol_id': 0, 'departamento_id': 1}.get(campo.nombre, 2))
+        for campo in campos:
+            if entidad.tabla == 'empleados' and campo.nombre == 'departamento_id':
+                self.departamento_empleado = QLineEdit()
+                self.departamento_empleado.setReadOnly(True)
+                self.departamento_empleado.setPlaceholderText('Se asigna al elegir un rol')
+                self.departamento_empleado.setToolTip('El departamento se asigna automáticamente según el rol.')
+                form.addRow('Departamento (automático)', self.departamento_empleado)
+                continue
             if campo.calculado:
                 continue
             valor = (registro or {}).get(campo.nombre)
@@ -94,6 +104,17 @@ class Formulario(QDialog):
                         editor.setText('0')
             form.addRow(etiqueta(campo.nombre) + (' *' if campo.requerido else ''), editor)
             self.editores[campo.nombre] = editor
+        if entidad.tabla == 'empleados':
+            roles = {r['id']: r for r in opciones['roles']}
+            def mostrar_departamento():
+                rol = roles.get(self.editores['rol_id'].currentData())
+                nombre = rol['departamento_nombre'] if rol else ''
+                if not rol and registro:
+                    nombre = next((d['nombre'] for d in opciones['departamentos']
+                                   if d['id'] == registro['departamento_id']), '')
+                self.departamento_empleado.setText(nombre)
+            self.editores['rol_id'].currentIndexChanged.connect(mostrar_departamento)
+            mostrar_departamento()
         scroll.setWidget(cuerpo)
         layout.addWidget(scroll)
         self.error = QLabel()
@@ -390,7 +411,7 @@ class VentanaPrincipal(QMainWindow):
                 self.ejecutar(lambda: self.servicio.guardar(tabla, valores, registro), listo, dialogo)
             dialogo.guardar.clicked.connect(guardar)
             dialogo.exec()
-        self.ejecutar(lambda: {c.referencia: self.servicio.opciones(c.referencia) for c in entidad.campos if c.referencia}, abrir)
+        self.ejecutar(lambda: self.servicio.opciones_formulario(tabla), abrir)
 
     def eliminar(self):
         registro = self.seleccionado()

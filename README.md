@@ -25,6 +25,7 @@ Abre `design/index.html` en tu navegador. Cada diagrama incluye enlaces para abr
 - Panel de resumen con clientes, empleados, servicios próximos y ventas acumuladas.
 - Calendario de la semana actual, de lunes a domingo y por hora local, con todas las citas de la semana y detalle al hacer clic.
 - Colores configurables por estado de servicio mediante un selector visual; el color se refleja en las citas del calendario.
+- Rol laboral del empleado con departamento asignado automáticamente al crear o editar.
 - Alta, consulta, edición y eliminación en las **25 tablas** del esquema original.
 - Navegación por Clientes, Equipo, Servicios, Inventario, Ventas y Compras.
 - Búsqueda en los campos visibles, paginación de 100 registros y selección de relaciones por nombre e identificador.
@@ -47,6 +48,7 @@ limpiezasoft/
   negocio/
     modelos.py                  Entidades y metadatos de las 25 tablas
     servicios.py                Validaciones y casos de uso
+    equipo.py                   Roles laborales y departamentos correspondientes
   ui/
     ventana.py                  Panel, listados, formularios y tareas asíncronas
     calendario.py               Calendario semanal y ventana de detalle de citas
@@ -128,6 +130,12 @@ No se asigna una persona automáticamente a registros históricos.
 
 La base local `proyecto` ya fue actualizada. Para otra instalación anterior, ejecuta el contenido de [migrations/001_color_estados_servicio.sql](migrations/001_color_estados_servicio.sql) en pgAdmin, conectado a la base del proyecto. Agrega `estados_servicio.color` como texto hexadecimal `#RRGGBB` con un color verde inicial y conserva los estados existentes. Las bases nuevas ya incluyen el campo en `db.sql`.
 
+#### Agregar roles laborales a empleados
+
+La base local también tiene aplicada [migrations/002_roles_empleados.sql](migrations/002_roles_empleados.sql). En otra instalación anterior, ejecuta ese archivo en pgAdmin. Agrega `empleados.rol_id`, crea o reutiliza los seis roles y sus departamentos, y registra las asociaciones en `departamentos_roles`. La inicialización con `main.py --init-db` también carga estos catálogos.
+
+Los empleados anteriores conservan sus datos y su departamento, sin inferir un rol. La columna permite NULL para esos registros históricos, pero la aplicación exige seleccionar un rol al crear o editar un empleado. La migración puede volver a ejecutarse sin duplicar sus catálogos; reutiliza nombres con diferencias de acentos o mayúsculas.
+
 ### Iniciar
 
 Haz doble clic en [start.bat](start.bat) o ejecuta desde PowerShell:
@@ -148,7 +156,7 @@ La aplicación lee `.env` desde la raíz del proyecto. Si falla la conexión, mu
 
 ## Primeros pasos
 
-1. Crea departamentos, roles y empleados; después, usuarios y sus asociaciones.
+1. Registra empleados eligiendo uno de los roles laborales disponibles; el departamento se asigna automáticamente. Después crea usuarios y sus asociaciones, si corresponde.
 2. Crea categorías de clientes y luego clientes.
 3. Crea categorías de productos, productos y depósitos; registra existencias en **Stock por depósito**.
 4. Crea estados y catálogo de servicios; en **Agenda de servicios** selecciona cliente, servicio, **limpiadora** (registrada en Empleados), estado y fecha. Luego registra su factura.
@@ -156,6 +164,23 @@ La aplicación lee `.env` desde la raíz del proyecto. Si falla la conexión, mu
 6. Crea proveedores, estados de compra y métodos de pago. Registra una orden, sus detalles y finalmente sus pagos.
 
 Los identificadores se generan automáticamente. Las relaciones muestran nombres e identificadores; si una lista está vacía, registra primero los datos de su módulo. En tablas de asociación, ambos campos componen la clave primaria. Para conservar la contraseña de un usuario al editarlo, deja el campo vacío.
+
+### Rol y departamento de cada empleado
+
+En **Equipo → Empleados → Nuevo/Editar**, selecciona **Rol**. El campo **Departamento (automático)** muestra la asignación y es de solo lectura:
+
+| Rol | Departamento |
+| --- | --- |
+| Limpiador | Clientes |
+| Informática | Informática |
+| Vendedor | Clientes |
+| Manager | Administración |
+| Contabilidad | Administración |
+| Recursos humanos | HR |
+
+Al guardar, Negocio vuelve a resolver la relación desde los catálogos y persiste rol y departamento en la misma transacción. Cambiar el rol también actualiza el departamento. Los roles laborales no modifican automáticamente los roles de acceso de `usuario_roles`.
+
+![Formulario de empleado con rol y departamento automático](docs/empleados-rol.png)
 
 ### Calendario semanal y colores
 

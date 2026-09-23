@@ -52,6 +52,10 @@ class PostgreSQLTests(unittest.TestCase):
                             '5' if campo.tipo in ('decimal', 'entero') else
                             'persona@example.com' if campo.nombre == 'email' else
                             'Prueba12345')
+                    if entidad.tabla == 'departamentos':
+                        datos['nombre_departamento'] = 'Clientes'
+                    elif entidad.tabla == 'roles':
+                        datos['nombre_rol'] = 'Limpiador'
                     servicio.guardar(entidad.tabla, datos)
                     filas, total = servicio.listar(entidad.tabla)
                     self.assertEqual(total, 1, entidad.tabla)
@@ -123,3 +127,26 @@ class PostgreSQLTests(unittest.TestCase):
                 self.assertTrue(all(s['estado_color'] == '#FFCC00' for s in servicio.agenda_semanal(referencia)['servicios']))
                 conn.execute((ROOT / 'migrations/001_color_estados_servicio.sql').read_text(encoding='utf-8'))
                 self.assertEqual(servicio.listar('estados_servicio')[0][0]['color'], '#FFCC00')
+
+                # La migración añade catálogos sin modificar empleados anteriores.
+                from limpiezasoft.negocio.equipo import ROLES_DEPARTAMENTOS
+                conn.execute("INSERT INTO departamentos(nombre_departamento) VALUES ('Administracion')")
+                conn.execute("INSERT INTO empleados(departamento_id,cedula,nombre) VALUES (1,'LEGADO','Empleado anterior')")
+                anteriores = conn.execute('SELECT * FROM empleados ORDER BY empleado_id').fetchall()
+                migracion = (ROOT / 'migrations/002_roles_empleados.sql').read_text(encoding='utf-8')
+                conn.execute(migracion)
+                conn.execute(migracion)
+                self.assertEqual(conn.execute('SELECT * FROM empleados ORDER BY empleado_id').fetchall(), anteriores)
+                self.assertEqual(conn.execute("SELECT COUNT(*) AS n FROM departamentos WHERE nombre_departamento IN ('Administracion','Administración')").fetchone()['n'], 1)
+                opciones = servicio.opciones_formulario('empleados')
+                self.assertEqual([(r['nombre'], r['departamento_nombre']) for r in opciones['roles']], list(ROLES_DEPARTAMENTOS))
+                for i, rol in enumerate(opciones['roles']):
+                    servicio.guardar('empleados', dict(cedula=f'ROL-{i}', nombre='Empleado de prueba', rol_id=rol['id'], departamento_id=-1))
+                    empleado = servicio.listar('empleados', f'ROL-{i}')[0][0]
+                    self.assertEqual(empleado['rol_id'], rol['id'])
+                    self.assertEqual(empleado['departamento_id'], rol['departamento_id'])
+                primero = servicio.listar('empleados', 'ROL-0')[0][0]
+                ultimo_rol = opciones['roles'][-1]
+                servicio.guardar('empleados', dict(cedula='ROL-0',nombre='Empleado de prueba',rol_id=ultimo_rol['id']), primero)
+                self.assertEqual(servicio.listar('empleados','ROL-0')[0][0]['departamento_id'], ultimo_rol['departamento_id'])
+                self.assertEqual(conn.execute("SELECT rol_id FROM empleados WHERE cedula='LEGADO'").fetchone()['rol_id'], None)

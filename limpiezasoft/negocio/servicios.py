@@ -6,6 +6,7 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 
 from limpiezasoft.negocio.modelos import ENTIDADES, etiqueta
+from limpiezasoft.negocio.equipo import roles_laborales
 
 
 class ErrorValidacion(ValueError):
@@ -95,6 +96,14 @@ class ServicioGestion:
         with self.repo.sesion() as conn:
             return self.repo.opciones(conn, ENTIDADES[tabla])
 
+    def opciones_formulario(self, tabla):
+        referencias = {c.referencia for c in ENTIDADES[tabla].campos if c.referencia}
+        with self.repo.sesion() as conn:
+            opciones = {ref: self.repo.opciones(conn, ENTIDADES[ref]) for ref in referencias}
+            if tabla == 'empleados':
+                opciones['roles'] = roles_laborales(self.repo.asociaciones_roles(conn))
+            return opciones
+
     def resumen(self):
         with self.repo.sesion() as conn:
             return self.repo.resumen(conn)
@@ -109,6 +118,14 @@ class ServicioGestion:
         entidad = ENTIDADES[tabla]
         valores = validar(entidad, entrada, anterior is not None)
         with self.repo.sesion(escritura=True) as conn:
+            if tabla == 'empleados':
+                roles = roles_laborales(self.repo.asociaciones_roles(conn))
+                asignacion = next((r for r in roles if r['id'] == valores['rol_id']), None)
+                if asignacion is None:
+                    raise ErrorValidacion('El rol elegido no tiene el departamento configurado. '
+                                          'Actualiza los catálogos con la migración de roles de empleados.')
+                # El departamento se deriva aquí, sin confiar en el valor enviado por la UI.
+                valores['departamento_id'] = asignacion['departamento_id']
             self.repo.guardar(conn, entidad, valores, anterior)
             self._actualizar_totales(conn, tabla, valores, anterior)
 

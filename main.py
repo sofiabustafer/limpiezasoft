@@ -14,6 +14,7 @@ def main():
         try:
             with repo.sesion(escritura=True) as conn:
                 conn.execute((ROOT / 'db.sql').read_text(encoding='utf-8'))
+                conn.execute((ROOT / 'migrations' / '002_roles_empleados.sql').read_text(encoding='utf-8'))
         except ErrorDatos as exc:
             print(f'No se pudo inicializar: {exc}', file=sys.stderr)
             return 1

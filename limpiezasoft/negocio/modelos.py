@@ -42,7 +42,7 @@ def entidad(tabla, titulo, grupo, clave, *campos):
 entidad('departamentos', 'Departamentos', 'Equipo', 'departamento_id', c('nombre_departamento', largo=100))
 entidad('roles', 'Roles', 'Equipo', 'rol_id', c('nombre_rol', largo=50))
 entidad('departamentos_roles', 'Roles por departamento', 'Equipo', ('departamento_id', 'rol_id'), fk('departamento_id', 'departamentos'), fk('rol_id', 'roles'))
-entidad('empleados', 'Empleados', 'Equipo', 'empleado_id', fk('departamento_id', 'departamentos'), c('cedula', largo=20), c('nombre', largo=100), c('telefono', requerido=False, largo=20))
+entidad('empleados', 'Empleados', 'Equipo', 'empleado_id', c('departamento_id', 'entero', referencia='departamentos', calculado=True), c('cedula', largo=20), c('nombre', largo=100), c('telefono', requerido=False, largo=20), fk('rol_id', 'roles'))
 entidad('usuarios', 'Usuarios', 'Equipo', 'usuario_id', fk('empleado_id', 'empleados'), c('email', largo=100), c('password_hash', 'password', largo=255), c('activo', 'booleano'))
 entidad('usuario_roles', 'Roles por usuario', 'Equipo', ('usuario_id', 'rol_id'), fk('usuario_id', 'usuarios'), fk('rol_id', 'roles'))
 entidad('categorias_clientes', 'Categorías de clientes', 'Clientes', 'categoria_cliente_id', c('nombre_categoria', largo=50), c('descuento_porcentaje', 'decimal'))

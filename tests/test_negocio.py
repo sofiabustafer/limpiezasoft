@@ -5,9 +5,19 @@ from datetime import date
 
 from limpiezasoft.negocio.modelos import ENTIDADES
 from limpiezasoft.negocio.servicios import ErrorValidacion, ServicioGestion, validar, limites_semana
+from limpiezasoft.negocio.equipo import roles_laborales
 
 
 class ValidacionTests(unittest.TestCase):
+    def test_roles_no_admiten_asociaciones_incorrectas(self):
+        asociaciones = [dict(id=1,nombre='MANAGER',departamento_id=3,departamento_nombre='Administracion'),
+                        dict(id=2,nombre='Limpiador',departamento_id=4,departamento_nombre='Limpieza'),
+                        dict(id=3,nombre='Operador',departamento_id=3,departamento_nombre='Administracion')]
+        self.assertEqual(roles_laborales(asociaciones), [dict(id=1,nombre='Manager',departamento_id=3,departamento_nombre='Administración')])
+
+    def test_empleado_debe_elegir_rol(self):
+        with self.assertRaisesRegex(ErrorValidacion, 'Rol es obligatorio'):
+            validar(ENTIDADES['empleados'],dict(cedula='123',nombre='Persona',departamento_id=1))
     def test_color_hexadecimal(self):
         salida = validar(ENTIDADES['estados_servicio'], dict(nombre_estado='Pendiente', color='#ab12ef'))
         self.assertEqual(salida['color'], '#AB12EF')

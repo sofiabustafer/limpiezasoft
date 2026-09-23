@@ -20,7 +20,8 @@ CREATE TABLE empleados (
     departamento_id INT NOT NULL REFERENCES departamentos(departamento_id),
     cedula VARCHAR(20) UNIQUE NOT NULL,
     nombre VARCHAR(100) NOT NULL,
-    telefono VARCHAR(20)
+    telefono VARCHAR(20),
+    rol_id INT REFERENCES roles(rol_id)
 );
 
 CREATE TABLE usuarios (

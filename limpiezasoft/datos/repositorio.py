@@ -61,6 +61,16 @@ class Repositorio:
             id=sql.Identifier(entidad.clave[0]), nombre=sql.Identifier(nombre), tabla=sql.Identifier(entidad.tabla))
         return conn.execute(consulta).fetchall()
 
+    def asociaciones_roles(self, conn):
+        return conn.execute('''
+            SELECT r.rol_id AS id, r.nombre_rol AS nombre,
+                   d.departamento_id, d.nombre_departamento AS departamento_nombre
+            FROM roles r
+            JOIN departamentos_roles dr ON dr.rol_id = r.rol_id
+            JOIN departamentos d ON d.departamento_id = dr.departamento_id
+            ORDER BY r.rol_id, d.departamento_id
+        ''').fetchall()
+
     def guardar(self, conn, entidad, valores, anterior=None):
         campos = list(valores)
         if anterior is None:

@@ -105,3 +105,22 @@ class CalendarioTests(unittest.TestCase):
         self.assertEqual(texto_contraste('#FFFF00'), '#000000')
         self.assertEqual(texto_contraste('#000033'), '#FFFFFF')
         formulario.close()
+
+    def test_rol_empleado_muestra_departamento_automatico(self):
+        from limpiezasoft.negocio.equipo import ROLES_DEPARTAMENTOS
+        roles = [dict(id=i+1, nombre=rol, departamento_id=i+1, departamento_nombre=departamento)
+                 for i, (rol, departamento) in enumerate(ROLES_DEPARTAMENTOS)]
+        departamentos = [dict(id=i+1,nombre=departamento) for i, (_,departamento) in enumerate(ROLES_DEPARTAMENTOS)]
+        form = Formulario(ENTIDADES['empleados'], dict(roles=roles, departamentos=departamentos))
+        self.assertTrue(form.departamento_empleado.isReadOnly())
+        for indice, rol in enumerate(roles, start=1):
+            form.editores['rol_id'].setCurrentIndex(indice)
+            self.assertEqual(form.departamento_empleado.text(), rol['departamento_nombre'])
+            self.assertEqual(form.valores()['rol_id'], rol['id'])
+            self.assertNotIn('departamento_id', form.valores())
+        empleado = dict(empleado_id=1,rol_id=2,departamento_id=2,cedula='123',nombre='Persona')
+        edit = Formulario(ENTIDADES['empleados'], dict(roles=roles, departamentos=departamentos), empleado)
+        self.assertEqual(edit.editores['rol_id'].currentData(), 2)
+        self.assertEqual(edit.departamento_empleado.text(), 'Informática')
+        edit.close()
+        form.close()
